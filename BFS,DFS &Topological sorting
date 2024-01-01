@@ -1,160 +1,321 @@
-#include<stdio.h>
-int a[20][20],q[20],visited[20],n,i,j,f=0,r=-1;
-typedef enum boolean{false,true} bool;
-bool visited_dfs[10];
-void bfs(int v)
-{
-for (i=1;i<=n;i++)
-if(a[v][i] && !visited[i])
-q[++r]=i;
-if(f<=r)
-{ visited[q[f]]=1;
-bfs(q[f++]);
-}
-}
-void bfs_sort(){
-int v;
-printf("\n enter the number of vertices:");
-scanf("%d",&n);
-for (i=1;i<=n;i++)
-{
-q[i]=0;
-visited[i]=0;
-}
-printf("\n enter graph data in matrix form:\n");
-for (i=1;i<=n;i++)
-for (j=1;j<=n;j++)
-scanf("%d",&a[i][j]);
-printf("\n Enter the starting vertex:");
-scanf("%d",&v);
-bfs(v);
-printf("\n The node which are reachable are:\n");
-for (i=1;i<=n;i++)
-if(visited[i])
-printf("%d\t",i);
-else
-printf("\n Bfs is not possible");
-}
-void dfs(int v)
-{
-int i,stack[10],top=-1,pop;
-top++;
-stack[top]=v;
-while(top>=0)
-{
-pop=stack[top];
-top--;
-if(visited_dfs[pop]==false)
-{
-printf("%d",pop);
+#include <stdio.h>
+#include <stdlib.h>
 
+enum color { White, Gray, Black };
 
-visited_dfs[pop]=true;
-}
-else
-continue;
-for(i=n;i>=1;i--)
-{
-if(a[pop][i]==1 && visited_dfs[i]==false)
-{
-top++;
-stack[top]=i;
-}
-}
-}
-}
-void dfs_sort(){
-int i,j,v;
-printf("Enter the no. of nodes in the graph\n");scanf("%d",&n);
-printf("Enter the adjacency matrix \n");
-for(i=1;i<=n;i++)
-{
-for(j=1;j<=n;j++)
-{
-scanf("%d",&a[i][j]);
-}
-}
-printf("The adjacency matrix shown as\n");
-for(i=1;i<=n;i++)
-{
-for(j=1;j<=n;j++)
-{
-printf("%d ",a[i][j]);
-}
-printf("\n");
-}
-printf("Enter the starting node for Depth First search\n");
-scanf("%d",&v);
-for(i=1;i<=n;i++)
-visited_dfs[i]=false;
-dfs(v);
-}
-void top_sort(){
-int i,j,k,n,a[10][10],indeg[10],flag[10],count=0;
-printf("Enter the no of vertices:\n");
-scanf("%d",&n);
-printf("Enter the adjacency matrix:\n");
-for(i=0;i<n;i++){
-printf("Enter row %d\n",i+1);
-for(j=0;j<n;j++)
-scanf("%d",&a[i][j]);
-}
-for(i=0;i<n;i++){
+typedef struct list_node {
+  int index_of_item;
+  struct list_node *next;
+} list_node;
 
+typedef struct node {
+  int data;
+  enum color colr;
+  int discovery_time;
+  int finish_time;
+  list_node *head;
+} node;
 
-indeg[i]=0;
-flag[i]=0;
+typedef struct graph {
+  int number_of_vertices;
+  node heads[];
+} graph;
+
+node *new_node(int data) {
+  node *z = malloc(sizeof(node));
+  z->data = data;
+  z->head = NULL;
+  z->colr = White;
+  z->discovery_time = 0;
+  z->finish_time = 0;
+  return z;
 }
-for(i=0;i<n;i++)
-for(j=0;j<n;j++)
-indeg[i]=indeg[i]+a[j][i];
-printf("\nThe topological order is:");
-while(count<n){
-for(k=0;k<n;k++){
-if((indeg[k]==0) && (flag[k]==0)){
-printf("%d ",(k+1));
-flag [k]=1;
+
+list_node *new_list_node(int item_index) {
+  list_node *z = malloc(sizeof(list_node));
+  z->index_of_item = item_index;
+  z->next = NULL;
+  return z;
 }
-for(i=0;i<n;i++){
-if(a[i][k]==1)
-indeg[k]--;
+
+graph *new_graph(int number_of_vertices) {
+  graph *g = malloc(sizeof(graph) + (number_of_vertices * sizeof(node)));
+  g->number_of_vertices = number_of_vertices;
+
+  int i;
+  for (i = 0; i < number_of_vertices; i++) {
+    node *z = new_node(-1);
+    g->heads[i] = *z;
+  }
+
+  return g;
 }
+
+void add_node_to_graph(graph *g, int data) {
+  node *z = new_node(data);
+  int i;
+  for (i = 0; i < g->number_of_vertices; i++) {
+    if (g->heads[i].data < 0) {
+      g->heads[i] = *z;
+      break;
+    }
+  }
 }
-count++;
+
+int in_graph_head_list(graph *g, int data) {
+  int i;
+  for (i = 0; i < g->number_of_vertices; i++) {
+    if (g->heads[i].data == data)
+      return 1;
+  }
+  return 0;
 }
+
+void add_edge(graph *g, int source, int dest) {
+  if (!in_graph_head_list(g, source)) {
+    add_node_to_graph(g, source);
+  }
+  if (!in_graph_head_list(g, dest)) {
+    add_node_to_graph(g, dest);
+  }
+
+  int i, j;
+  for (i = 0; i < g->number_of_vertices; i++) {
+    if (g->heads[i].data == source) {
+
+      int dest_index;
+      for (j = 0; j < g->number_of_vertices; j++) {
+        if (g->heads[j].data == dest) {
+          dest_index = j;
+          break;
+        }
+      }
+
+      list_node *n = new_list_node(dest_index);
+      if (g->heads[i].head == NULL) {
+        g->heads[i].head = n;
+      } else {
+        list_node *temp;
+        temp = g->heads[i].head;
+
+        while (temp->next != NULL) {
+          temp = temp->next;
+        }
+        temp->next = n;
+      }
+      break;
+    }
+  }
 }
-void main(){
-int ch;
-do{
-printf("\n1)Toplogical sort\n2)Bfs\n3)Dfs\n4)Exit\n");
-printf("Enter your choice:");
-scanf("%d",&ch);
-switch(ch)
-{
-case 1:
 
-top_sort();
-break;
-
-case 2:
-
-bfs_sort();
-break;
-
-case 3:
-
-dfs_sort();
-break;
-
-case 4:
-
-printf("Exit");
-break;
-
-default:
-
-printf("Enter a valid choice:");
-
+void print_graph(graph *g) {
+  int i;
+  for (i = 0; i < g->number_of_vertices; i++) {
+    list_node *temp;
+    temp = g->heads[i].head;
+    printf("%d\t", g->heads[i].data);
+    while (temp != NULL) {
+      printf("%d\t", g->heads[temp->index_of_item].data);
+      temp = temp->next;
+    }
+    printf("\n");
+  }
 }
-}while(ch!=4);
+
+typedef struct queue_node {
+  node *n;
+  struct queue_node *next;
+} queue_node;
+
+typedef struct queue {
+  int count;
+  queue_node *front;
+  queue_node *rear;
+} queue;
+
+int is_empty_queue(queue *q) { return !(q->count); }
+
+void enqueue(queue *q, node *n) {
+  queue_node *new_queue_node;
+  new_queue_node = malloc(sizeof(queue_node));
+  new_queue_node->n = n;
+  new_queue_node->next = NULL;
+  if (!is_empty_queue(q)) {
+    q->rear->next = new_queue_node;
+    q->rear = new_queue_node;
+  } else {
+    q->front = q->rear = new_queue_node;
+  }
+  q->count++;
+}
+
+queue_node *dequeue(queue *q) {
+  queue_node *tmp;
+  tmp = q->front;
+  q->front = q->front->next;
+  q->count--;
+  return tmp;
+}
+
+queue *make_queue() {
+  queue *q;
+  q = malloc(sizeof(queue));
+  q->count = 0;
+  q->front = NULL;
+  q->rear = NULL;
+  return q;
+}
+
+void print_queue(queue *q) {
+  queue_node *tmp;
+  tmp = q->front;
+  while (tmp != NULL) {
+    printf("%d\t", tmp->n->data);
+    tmp = tmp->next;
+  }
+  printf("\n");
+}
+
+void bfs(graph *g) {
+  node *s = &g->heads[0];
+  int i;
+  for (i = 0; i < g->number_of_vertices; i++) {
+    g->heads[i].colr = White;
+  }
+  s->colr = Gray;
+
+  queue *q = make_queue();
+  enqueue(q, s);
+
+  while (!is_empty_queue(q)) {
+    queue_node *u = dequeue(q);
+    list_node *temp;
+    temp = u->n->head;
+    while (temp != NULL) {
+      if (g->heads[temp->index_of_item].colr == White) {
+        g->heads[temp->index_of_item].colr = Gray;
+        enqueue(q, &g->heads[temp->index_of_item]);
+      }
+      temp = temp->next;
+    }
+    u->n->colr = Black;
+    printf("%d\n", u->n->data);
+  }
+}
+
+void dfs_visit(graph *g, node *u, int *time) {
+  u->colr = Gray;
+  u->discovery_time = ++(*time);
+
+  printf("Node %d discovered at time %d\n", u->data, u->discovery_time);
+
+  list_node *temp = u->head;
+  while (temp != NULL) {
+    if (g->heads[temp->index_of_item].colr == White) {
+      dfs_visit(g, &g->heads[temp->index_of_item], time);
+    }
+    temp = temp->next;
+  }
+
+  u->colr = Black;
+  u->finish_time = ++(*time);
+  printf("Node %d finished at time %d\n", u->data, u->finish_time);
+}
+
+void dfs(graph *g) {
+  int time = 0;
+
+  int i;
+    for (i = 0; i < g->number_of_vertices; i++) {
+    g->heads[i].colr = White;
+  }
+  for (i = 0; i < g->number_of_vertices; i++) {
+    if (g->heads[i].colr == White) {
+      dfs_visit(g, &g->heads[i], &time);
+
+    }
+  }
+}
+
+typedef struct Stack {
+  int data;
+  struct Stack *next;
+} Stack;
+
+Stack *createStackNode(int data) {
+  Stack *newNode = malloc(sizeof(Stack));
+  newNode->data = data;
+  newNode->next = NULL;
+  return newNode;
+}
+
+void topologicalSortUtil(graph *g, int v, int *visited, Stack **stack) {
+  visited[v] = 1;
+
+  list_node *current = g->heads[v].head;
+  while (current != NULL) {
+    int adjacentVertex = current->index_of_item;
+    if (!visited[adjacentVertex]) {
+      topologicalSortUtil(g, adjacentVertex, visited, stack);
+    }
+    current = current->next;
+  }
+
+  Stack *newNode = createStackNode(v);
+  newNode->next = *stack;
+  *stack = newNode;
+}
+
+void topologicalSort(graph *g) {
+  Stack *stack = NULL;
+
+  int *visited = malloc(g->number_of_vertices * sizeof(int));
+  for (int i = 0; i < g->number_of_vertices; ++i) {
+    visited[i] = 0;
+  }
+
+  for (int i = 0; i < g->number_of_vertices; ++i) {
+    if (!visited[i]) {
+      topologicalSortUtil(g, i, visited, &stack);
+    }
+  }
+
+  while (stack != NULL) {
+    printf("%d ", stack->data);
+    Stack *temp = stack;
+    stack = stack->next;
+    free(temp);
+  }
+
+  free(visited);
+}
+
+int main() {
+ int v,v1,v2,e;
+    printf("Enter the number of vertex :");
+    scanf("%d",&v);
+    graph *g = new_graph(v);
+    printf("Enter the number of edges :");
+    scanf("%d",&e);
+    printf("Enter the edges (v1,v2) :");
+    for(int i =0;i<e;i++){
+     scanf("%d",&v1);
+     scanf("%d",&v2);
+       add_edge(g, v1, v2);
+    }
+  printf("Graph Representation:\n");
+  print_graph(g);
+
+  printf("\nBFS Traversal:\n");
+  bfs(g);
+
+  printf("\nDFS Traversal:\n");
+  dfs(g);
+
+  printf("\nTopological Sort:\n");
+  topologicalSort(g);
+
+  free(g);
+
+  return 0;
 }
